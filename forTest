@@ -1,0 +1,54 @@
+import org.kohsuke.github.GHContent;
+import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
+
+import java.io.IOException;
+import java.util.List;
+
+public class GitHubEnterpriseScanner {
+
+    public static void main(String[] args) {
+        try {
+            // 用你的GitHub Enterprise的个人访问令牌替换YOUR_ACCESS_TOKEN
+            GitHub github = new GitHubBuilder()
+                    .withEndpoint("https://alm-github.systems.uk.hsbc/api/v3")
+                    .withOAuthToken("YOUR_ACCESS_TOKEN")
+                    .build();
+
+            // 替换为你要扫描的组织的名字
+            String organizationName = "your-organization-name";
+            GHOrganization organization = github.getOrganization(organizationName);
+
+            // 遍历组织中的每个仓库
+            for (GHRepository repository : organization.listRepositories()) {
+                System.out.println("Scanning repository: " + repository.getName());
+                // 从根目录开始递归扫描
+                scanDirectory(repository, "/");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 递归扫描目录及其子目录
+    private static void scanDirectory(GHRepository repository, String path) throws IOException {
+        List<GHContent> contents = repository.getDirectoryContent(path);
+
+        // 遍历目录内容
+        for (GHContent content : contents) {
+            // 如果是文件，并且以“.feature”结尾，则打印信息
+            if (content.isFile() && content.getName().endsWith(".feature")) {
+                System.out.println("File Name: " + content.getName());
+                System.out.println("Repository: " + repository.getName());
+                System.out.println("File Link: " + content.getHtmlUrl());
+                System.out.println("---------------------------");
+            } else if (content.isDirectory()) {
+                // 如果是目录，则递归调用此函数
+                scanDirectory(repository, content.getPath());
+            }
+        }
+    }
+}
